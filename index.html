@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Temperature & Humidity</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to right, #007bff, #6610f2);
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        .data-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="mb-4"><i class="fas fa-thermometer-half"></i> Live Temperature & Humidity</h1>
+
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <h3>Current Time</h3>
+                    <p class="data-value" id="current-time"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <h3>Temperature (°C)</h3>
+                    <p class="data-value" id="temperature">--</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <h3>Humidity (%)</h3>
+                    <p class="data-value" id="humidity">--</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const sheetUrl = "https://script.google.com/macros/s/AKfycbzNzKDxsR9F6X6jawEzMMn0zJXte7XbiXI8OaNLkinJn7JFtACSqjQacBd3GBk-o0ni/exec?action=fetchLatest";
+
+        function updateTime() {
+            document.getElementById("current-time").innerText = new Date().toLocaleString();
+        }
+
+        function fetchData() {
+            const url = sheetUrl + "&timestamp=" + new Date().getTime(); // Add timestamp to prevent caching
+
+            fetch(url, { headers: { "Cache-Control": "no-cache" } })
+                .then(response => {
+                    console.log("Response Status:", response.status); // Log status
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Fetched Data:", data); // Debugging log
+
+                    // Check if the response contains valid data
+                    if (typeof data.temp === "undefined" || typeof data.humd === "undefined") {
+                        console.warn("Missing temp/humd in response!", data);
+                        return;
+                    }
+
+                    // Update the UI
+                    document.getElementById("temperature").innerText = data.temp + "°C";
+                    document.getElementById("humidity").innerText = data.humd + "%";
+                })
+                .catch(error => console.error("Fetch Error:", error));
+        }
+
+        // Fetch immediately and set intervals
+        fetchData();
+        setInterval(fetchData, 10000);
+        setInterval(updateTime, 1000);
+    </script>
+
+</body>
+</html>
