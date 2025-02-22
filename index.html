@@ -58,7 +58,7 @@
     </div>
 
     <script>
-        const sheetUrl = "https://script.google.com/macros/s/AKfycbzNzKDxsR9F6X6jawEzMMn0zJXte7XbiXI8OaNLkinJn7JFtACSqjQacBd3GBk-o0ni/exec?action=fetchLatest";
+        const sheetUrl = "https://script.google.com/macros/s/AKfycbxgHoyB2ASwencON10tvPIxglVTnKMQePqHTwfTX2mtmTByiWTUUo_T9VSTOMKm4SAw/exec?action=fetchLatest";
 
         function updateTime() {
             document.getElementById("current-time").innerText = new Date().toLocaleString();
@@ -68,28 +68,24 @@
             const url = sheetUrl + "&timestamp=" + new Date().getTime(); // Add timestamp to prevent caching
 
             fetch(url, { headers: { "Cache-Control": "no-cache" } })
-                .then(response => {
-                    console.log("Response Status:", response.status); // Log status
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Fetched Data:", data); // Debugging log
+            .then(response => response.json()) // No need for extra status check
+            .then(data => {
+                console.log("Fetched Data:", data);
 
-                    // Check if the response contains valid data
-                    if (typeof data.temp === "undefined" || typeof data.humd === "undefined") {
-                        console.warn("Missing temp/humd in response!", data);
-                        return;
-                    }
+                if (data.error) {
+                    console.error("API Error:", data.error);
+                    return;
+                }
 
-                    // Update the UI
-                    document.getElementById("temperature").innerText = data.temp + "°C";
-                    document.getElementById("humidity").innerText = data.humd + "%";
-                })
-                .catch(error => console.error("Fetch Error:", error));
-        }
+                if (!data.temp || !data.humd) {
+                    console.warn("Invalid data received:", data);
+                    return;
+                }
+
+                document.getElementById("temperature").innerText = data.temp + "°C";
+                document.getElementById("humidity").innerText = data.humd + "%";
+            })
+   }
 
         // Fetch immediately and set intervals
         fetchData();
