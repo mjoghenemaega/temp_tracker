@@ -8,28 +8,44 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
     <style>
         body {
-            background: linear-gradient(to right, #007bff, #6610f2);
-            color: white;
+            background: #ffe;
+            color: black;
             text-align: center;
             padding: 50px;
         }
         .card {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.05);
             border: none;
             border-radius: 15px;
             padding: 20px;
+            margin-bottom: 15px;
         }
         .data-value {
             font-size: 2rem;
             font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .table-container {
+            margin-top: 30px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .table {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1 class="mb-4"><i class="fas fa-thermometer-half"></i> Live Temperature & Humidity</h1>
+        <h1 class="mb-4"><i class="fas fa-thermometer-half"></i> Live Temperature & Humidity Data</h1>
 
         <div class="row justify-content-center">
             <div class="col-md-6">
@@ -43,49 +59,98 @@
         <div class="row mt-4">
             <div class="col-md-6">
                 <div class="card p-4">
-                    <h3>Temperature (°C)</h3>
+                    <h3>Latest Temperature (°C)</h3>
                     <p class="data-value" id="temperature">--</p>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card p-4">
-                    <h3>Humidity (%)</h3>
+                    <h3>Latest Humidity (%)</h3>
                     <p class="data-value" id="humidity">--</p>
                 </div>
             </div>
         </div>
 
+        <h3 class="mt-5">Last 3 Readings</h3>
+        <div class="table-container">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Temperature (°C)</th>
+                        <th>Humidity (%)</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table">
+                    <tr><td colspan="4">No data available</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>Project by:</p>
+            <p>Project Supervisor: Engr. El Ladan</p>
+            <p>Students: Ojah Kenneth, Okoye Justice, Ogaga Georgina Efe</p>
+        </div>
     </div>
 
     <script>
-        const sheetUrl = "https://script.google.com/macros/s/AKfycbxgHoyB2ASwencON10tvPIxglVTnKMQePqHTwfTX2mtmTByiWTUUo_T9VSTOMKm4SAw/exec?action=fetchLatest";
+        const sheetUrl = "https://script.google.com/macros/s/AKfycbwjhqcrpQxJHDIefrk9VO-QAmqoq2gHG_STxvJV0l_uWzfhZH_LpdlOydxZyV8CIL2K/exec?sts=read";
+        let historyData = [];
 
         function updateTime() {
             document.getElementById("current-time").innerText = new Date().toLocaleString();
         }
 
         function fetchData() {
-            const url = sheetUrl + "&timestamp=" + new Date().getTime(); // Add timestamp to prevent caching
+            const url = sheetUrl + "&timestamp=" + new Date().getTime(); // Prevent caching
 
-            fetch(url, { headers: { "Cache-Control": "no-cache" } })
-            .then(response => response.json()) // No need for extra status check
+            fetch(url)
+            .then(response => response.text()) // Expecting plain text
             .then(data => {
                 console.log("Fetched Data:", data);
 
-                if (data.error) {
-                    console.error("API Error:", data.error);
-                    return;
-                }
+                const values = data.split(",");
+                if (values.length >= 5) {
+                    const temperature = values[1] + "°C"; // Temperature (L3)
+                    const humidity = values[2] + "%"; // Humidity (M3)
+                    const timestamp = new Date().toLocaleString();
 
-                if (!data.temp || !data.humd) {
+                    document.getElementById("temperature").innerText = temperature;
+                    document.getElementById("humidity").innerText = humidity;
+
+                    // Store latest reading at the top
+                    historyData.unshift({ temp: temperature, hum: humidity, time: timestamp });
+
+                    // Keep only last 3 readings
+                    if (historyData.length > 3) historyData.pop();
+
+                    // Update table display
+                    updateHistoryTable();
+                } else {
                     console.warn("Invalid data received:", data);
-                    return;
                 }
-
-                document.getElementById("temperature").innerText = data.temp + "°C";
-                document.getElementById("humidity").innerText = data.humd + "%";
             })
-   }
+            .catch(error => console.error("Fetch Error:", error));
+        }
+
+        function updateHistoryTable() {
+            const tableBody = document.getElementById("history-table");
+            tableBody.innerHTML = ""; // Clear previous data
+
+            historyData.forEach((entry, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${entry.temp}</td>
+                        <td>${entry.hum}</td>
+                        <td>${entry.time}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
 
         // Fetch immediately and set intervals
         fetchData();
